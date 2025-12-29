@@ -1,2 +1,2 @@
+customtkinter
 matplotlib
-pandas
