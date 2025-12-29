@@ -1,7 +1,4 @@
-import sys
-
-# Büyük veri setlerinde hata almamak için sınırı artırıyoruz
-sys.setrecursionlimit(200000)
+# Dosya Adı: algorithms.py
 
 def quick_sort(arr):
     if len(arr) <= 1:
