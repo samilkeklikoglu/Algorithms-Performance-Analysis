@@ -1,10 +1,8 @@
 import sys
-import math
 
-# Rekürsiyon sınırı büyük veri setleri için artırılmalı
+# Büyük veri setlerinde hata almamak için sınırı artırıyoruz
 sys.setrecursionlimit(200000)
 
-# 1. Quick Sort [cite: 5]
 def quick_sort(arr):
     if len(arr) <= 1:
         return arr
@@ -14,7 +12,6 @@ def quick_sort(arr):
     right = [x for x in arr if x > pivot]
     return quick_sort(left) + middle + quick_sort(right)
 
-# 2. Heap Sort [cite: 6]
 def heap_sort(arr):
     n = len(arr)
     for i in range(n // 2 - 1, -1, -1):
@@ -33,7 +30,6 @@ def heapify(arr, n, i):
         arr[i], arr[largest] = arr[largest], arr[i]
         heapify(arr, n, largest)
 
-# 3. Shell Sort [cite: 7]
 def shell_sort(arr):
     n = len(arr)
     gap = n // 2
@@ -48,7 +44,6 @@ def shell_sort(arr):
         gap //= 2
     return arr
 
-# 4. Merge Sort [cite: 8]
 def merge_sort(arr):
     if len(arr) <= 1: return arr
     mid = len(arr) // 2
@@ -67,29 +62,28 @@ def merge(left, right):
     result.extend(left[i:]); result.extend(right[j:])
     return result
 
-# 5. Radix Sort [cite: 9]
 def radix_sort(arr):
     if not arr: return arr
     max_val = max(arr)
     exp = 1
     while max_val // exp > 0:
-        counting_sort_for_radix(arr, exp)
+        counting_sort(arr, exp)
         exp *= 10
     return arr
 
-def counting_sort_for_radix(arr, exp):
+def counting_sort(arr, exp):
     n = len(arr)
     output = [0] * n
     count = [0] * 10
     for i in range(n):
-        index = arr[i] // exp
-        count[index % 10] += 1
+        index = (arr[i] // exp) % 10
+        count[index] += 1
     for i in range(1, 10):
         count[i] += count[i - 1]
     i = n - 1
     while i >= 0:
-        index = arr[i] // exp
-        output[count[index % 10] - 1] = arr[i]
-        count[index % 10] -= 1
+        index = (arr[i] // exp) % 10
+        output[count[index] - 1] = arr[i]
+        count[index] -= 1
         i -= 1
     for i in range(n): arr[i] = output[i]
