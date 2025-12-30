@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'edu.gidatarim'
+version = '1.0.0'
+
+def targetJavaVersion = 17
+
+java {
+    sourceCompatibility = JavaVersion.toVersion(targetJavaVersion)
+    targetCompatibility = JavaVersion.toVersion(targetJavaVersion)
+}
+
+application {
+    mainClass = 'edu.gidatarim.sortbench.Main'
+    applicationName = 'sortbench'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(targetJavaVersion)
+}
+
+tasks.named('run') {
+    // Default args for local sanity runs; override with: gradlew run --args="..."
+}
