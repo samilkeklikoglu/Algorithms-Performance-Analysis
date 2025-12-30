@@ -60,7 +60,8 @@ public final class JsonWriter {
     numField(sb, "size", r.size).append(',');
     numField(sb, "repetitions", r.repetitions).append(',');
     numField(sb, "warmupRuns", r.warmupRuns).append(',');
-    numField(sb, "seed", r.seed);
+    numField(sb, "seed", r.seed).append(',');
+    field(sb, "allocationMetric", r.allocationMetric);
     sb.append('}').append(',');
 
     sb.append("\"resultsByAlgorithm\":{");
@@ -80,10 +81,23 @@ public final class JsonWriter {
       }
       sb.append("],");
 
+      sb.append("\"allocatedBytes\":[");
+      for (int i = 0; i < run.allocatedBytes.length; i++) {
+        if (i > 0)
+          sb.append(',');
+        sb.append(run.allocatedBytes[i]);
+      }
+      sb.append("],");
+
       numField(sb, "minNs", run.stats.minNs).append(',');
       numField(sb, "maxNs", run.stats.maxNs).append(',');
       doubleField(sb, "avgNs", run.stats.avgNs).append(',');
-      doubleField(sb, "medianNs", run.stats.medianNs);
+      doubleField(sb, "medianNs", run.stats.medianNs).append(',');
+
+      numField(sb, "minAllocatedBytes", run.allocationStats.minAllocatedBytes).append(',');
+      numField(sb, "maxAllocatedBytes", run.allocationStats.maxAllocatedBytes).append(',');
+      doubleField(sb, "avgAllocatedBytes", run.allocationStats.avgAllocatedBytes).append(',');
+      doubleField(sb, "medianAllocatedBytes", run.allocationStats.medianAllocatedBytes);
 
       sb.append('}');
     }

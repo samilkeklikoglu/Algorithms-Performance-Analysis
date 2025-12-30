@@ -22,9 +22,11 @@ public final class BenchmarkRunner {
   public static BenchmarkResult run(Args args, String engineVersion) {
     warmup(args, engineVersion);
 
+    AllocationMeasurer allocationMeasurer = AllocationMeasurer.create();
+
     Map<AlgorithmName, AlgorithmRun> results = new EnumMap<>(AlgorithmName.class);
     for (AlgorithmName name : args.algorithms) {
-      results.put(name, new AlgorithmRun(new long[args.repetitions]));
+      results.put(name, new AlgorithmRun(new long[args.repetitions], new long[args.repetitions]));
     }
 
     for (int r = 0; r < args.repetitions; r++) {
@@ -33,9 +35,12 @@ public final class BenchmarkRunner {
 
       for (AlgorithmName name : args.algorithms) {
         int[] copy = base.clone();
+
+        long allocBefore = allocationMeasurer.read();
         long start = System.nanoTime();
         sort(name, copy);
         long end = System.nanoTime();
+        long allocAfter = allocationMeasurer.read();
 
         if (args.verify) {
           Sortedness.requireSortedAscending(copy, name.name().toLowerCase() + ", rep=" + r);
@@ -43,13 +48,14 @@ public final class BenchmarkRunner {
 
         // Record measurement
         results.get(name).timesNs[r] = end - start;
+        results.get(name).allocatedBytes[r] = Math.max(0L, allocAfter - allocBefore);
       }
     }
 
     // Recompute stats with filled arrays
     Map<AlgorithmName, AlgorithmRun> finalized = new EnumMap<>(AlgorithmName.class);
     for (Map.Entry<AlgorithmName, AlgorithmRun> e : results.entrySet()) {
-      finalized.put(e.getKey(), new AlgorithmRun(e.getValue().timesNs));
+      finalized.put(e.getKey(), new AlgorithmRun(e.getValue().timesNs, e.getValue().allocatedBytes));
     }
 
     String timestampUtc = Instant.now().toString();
@@ -67,6 +73,7 @@ public final class BenchmarkRunner {
         args.repetitions,
         args.warmupRuns,
         args.seed,
+        allocationMeasurer.metric().name().toLowerCase(),
         finalized);
   }
 

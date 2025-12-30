@@ -35,6 +35,19 @@ public final class Args {
   }
 
   public static Args parse(String[] argv) {
+    // Some launchers (notably Gradle on Windows with certain quoting) may pass all
+    // arguments
+    // as a single string. Support that form for robustness.
+    if (argv != null && argv.length == 1) {
+      String joined = argv[0];
+      if (joined != null) {
+        joined = joined.trim();
+        if (joined.startsWith("--") && joined.contains(" ")) {
+          argv = joined.split("\\s+");
+        }
+      }
+    }
+
     String datasetRaw = null;
     String algorithmsRaw = "all";
     Integer size = null;
