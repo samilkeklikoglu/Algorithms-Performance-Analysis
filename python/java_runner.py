@@ -11,7 +11,7 @@ class JavaRunConfig:
     dataset: str  # random|partially_sorted|reverse
     size: int
     reps: int
-    seed: int
+    seed: int = 42
     warmup: int = 5
     algorithms: str = "all"
     verify: bool = True

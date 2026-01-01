@@ -28,6 +28,7 @@ public final class AllocationMeasurer {
     this.memoryBean = memoryBean;
   }
 
+  @SuppressWarnings("deprecation")
   public static AllocationMeasurer create() {
     try {
       java.lang.management.ThreadMXBean base = ManagementFactory.getThreadMXBean();

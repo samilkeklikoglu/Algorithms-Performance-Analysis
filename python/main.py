@@ -25,7 +25,7 @@ class ProSortingApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("AlgoAnalyze (GUI) + Java Benchmark Engine")
+        self.title("AlgoAnalyze")
         self.geometry("1200x800")
 
         self.grid_columnconfigure(1, weight=1)
@@ -37,7 +37,8 @@ class ProSortingApp(ctk.CTk):
     def create_sidebar(self):
         self.sidebar = ctk.CTkFrame(self, width=260, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
-        self.sidebar.grid_rowconfigure(12, weight=1)
+        # Keep controls top-aligned: let extra vertical space expand *after* our widgets.
+        self.sidebar.grid_rowconfigure(99, weight=1)
 
         title_lbl = ctk.CTkLabel(
             self.sidebar,
@@ -57,22 +58,8 @@ class ProSortingApp(ctk.CTk):
             row=3, column=0, padx=20, pady=(10, 0), sticky="w"
         )
         self.reps_entry = ctk.CTkEntry(self.sidebar, placeholder_text="5")
-        self.reps_entry.insert(0, "5")
+        self.reps_entry.insert(0, "50")
         self.reps_entry.grid(row=4, column=0, padx=20, pady=(0, 10), sticky="ew")
-
-        ctk.CTkLabel(self.sidebar, text="Seed:", anchor="w").grid(
-            row=5, column=0, padx=20, pady=(10, 0), sticky="w"
-        )
-        self.seed_entry = ctk.CTkEntry(self.sidebar, placeholder_text="12345")
-        self.seed_entry.insert(0, "42")
-        self.seed_entry.grid(row=6, column=0, padx=20, pady=(0, 10), sticky="ew")
-
-        ctk.CTkLabel(self.sidebar, text="Warmup (runs):", anchor="w").grid(
-            row=7, column=0, padx=20, pady=(10, 0), sticky="w"
-        )
-        self.warmup_entry = ctk.CTkEntry(self.sidebar, placeholder_text="5")
-        self.warmup_entry.insert(0, "5")
-        self.warmup_entry.grid(row=8, column=0, padx=20, pady=(0, 10), sticky="ew")
 
         ctk.CTkLabel(self.sidebar, text="Dataset Type:", anchor="w").grid(
             row=9, column=0, padx=20, pady=(10, 0), sticky="w"
@@ -164,8 +151,6 @@ class ProSortingApp(ctk.CTk):
         try:
             size = int(self.size_entry.get())
             reps = int(self.reps_entry.get())
-            seed = int(self.seed_entry.get())
-            warmup = int(self.warmup_entry.get())
             dataset = self.type_menu.get()
             verify = bool(self.verify_var.get())
         except Exception:
@@ -177,14 +162,14 @@ class ProSortingApp(ctk.CTk):
             dataset=dataset,
             size=size,
             reps=reps,
-            seed=seed,
-            warmup=warmup,
+            seed=42,
+            warmup=5,
             algorithms="all",
             verify=verify,
         )
 
         repo_root = _repo_root()
-        self._log(f"PARAMETERS: dataset={dataset}, N={size}, reps={reps}, seed={seed}, warmup={warmup}, verify={verify}\n")
+        self._log(f"PARAMETERS: dataset={dataset}, N={size}, reps={reps}, seed=42, warmup=5, verify={verify}\n")
         self._log("Running Java (Gradle Wrapper)...\n")
 
         proc = run_java_benchmark(repo_root, cfg)
