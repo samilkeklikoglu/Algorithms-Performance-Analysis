@@ -119,14 +119,14 @@ class ProSortingApp(ctk.CTk):
         self.ax1.tick_params(colors="white", labelsize=8)
 
         self.ax2.set_facecolor("#2b2b2b")
-        self.ax2.set_title("Memory (KB)", color="white", fontsize=10)
+        self.ax2.set_title("Heap Allocated During Sort (KB)", color="white", fontsize=10)
         self.ax2.tick_params(colors="white", labelsize=8)
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.chart_frame)
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
     def setup_table(self):
-        headers = ["Algorithm", "Avg (ms)", "Median (ms)", "Alloc (KB)", "Heap Δ (KB)", "Status"]
+        headers = ["Algorithm", "Avg (ms)", "Median (ms)", "Avg Heap Alloc (KB)", "Status"]
         self.table_frame = ctk.CTkFrame(self.tab_table)
         self.table_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
@@ -195,11 +195,11 @@ class ProSortingApp(ctk.CTk):
             return
 
         self._log(f"Loaded results: {results_path.name}\n")
-        params = result.get("params") or {}
-        alloc_metric = params.get("allocationMetric")
-        heap_metric = params.get("heapMetric")
-        if alloc_metric or heap_metric:
-            self._log(f"Memory metrics: alloc={alloc_metric}, heap={heap_metric}\n")
+        alloc_metric = (result.get("params") or {}).get("allocationMetric")
+        if alloc_metric:
+            self._log(
+                f"Memory metric: {alloc_metric} (heap allocated during timed sort; in-place algorithms may show 0)\n"
+            )
 
         self.update_dashboard(stats)
         self.update_table_view(stats)
@@ -214,7 +214,6 @@ class ProSortingApp(ctk.CTk):
         names = list(stats.keys())
         avg = [stats[n].avg_ms for n in names]
         alloc = [stats[n].avg_allocated_kb for n in names]
-        heap_delta = [stats[n].avg_heap_used_delta_kb for n in names]
 
         self.ax1.clear()
         self.ax1.set_facecolor("#2b2b2b")
@@ -225,17 +224,11 @@ class ProSortingApp(ctk.CTk):
 
         self.ax2.clear()
         self.ax2.set_facecolor("#2b2b2b")
-        x = list(range(len(names)))
-        w = 0.38
         alloc_values = [(v if v is not None else 0.0) for v in alloc]
-        heap_values = [(v if v is not None else 0.0) for v in heap_delta]
-        self.ax2.bar([i - w / 2 for i in x], alloc_values, width=w, color="#9b59b6", alpha=0.85, label="Allocated")
-        self.ax2.bar([i + w / 2 for i in x], heap_values, width=w, color="#f39c12", alpha=0.85, label="Heap Δ")
-        self.ax2.set_title("Memory (KB)", color="white", pad=10)
-        self.ax2.set_xticks(x)
-        self.ax2.set_xticklabels(names, rotation=20, color="white")
+        self.ax2.bar(names, alloc_values, color="#9b59b6", alpha=0.85)
+        self.ax2.set_title("Heap Allocated During Sort (KB)", color="white", pad=10)
+        self.ax2.tick_params(axis="x", rotation=20, colors="white")
         self.ax2.tick_params(axis="y", colors="white")
-        self.ax2.legend(facecolor="#2b2b2b", edgecolor="#2b2b2b", labelcolor="white", fontsize=8)
 
         self.fig.tight_layout()
         self.canvas.draw()
@@ -254,10 +247,8 @@ class ProSortingApp(ctk.CTk):
             ctk.CTkLabel(self.table_frame, text=f"{s.avg_ms:.3f}", fg_color=bg_color).grid(row=i + 1, column=1, sticky="ew", padx=2, pady=2)
             ctk.CTkLabel(self.table_frame, text=f"{s.median_ms:.3f}", fg_color=bg_color).grid(row=i + 1, column=2, sticky="ew", padx=2, pady=2)
             alloc_text = "-" if s.avg_allocated_kb is None else f"{s.avg_allocated_kb:.1f}"
-            heap_text = "-" if s.avg_heap_used_delta_kb is None else f"{s.avg_heap_used_delta_kb:.1f}"
             ctk.CTkLabel(self.table_frame, text=alloc_text, fg_color=bg_color).grid(row=i + 1, column=3, sticky="ew", padx=2, pady=2)
-            ctk.CTkLabel(self.table_frame, text=heap_text, fg_color=bg_color).grid(row=i + 1, column=4, sticky="ew", padx=2, pady=2)
-            ctk.CTkLabel(self.table_frame, text="OK", fg_color=bg_color, text_color="#2ecc71").grid(row=i + 1, column=5, sticky="ew", padx=2, pady=2)
+            ctk.CTkLabel(self.table_frame, text="OK", fg_color=bg_color, text_color="#2ecc71").grid(row=i + 1, column=4, sticky="ew", padx=2, pady=2)
 
     def _log(self, text: str):
         self.after(0, lambda: (self.log_box.insert("end", text), self.log_box.see("end")))

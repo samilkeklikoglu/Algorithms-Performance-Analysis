@@ -18,11 +18,6 @@ class AlgorithmStats:
     min_allocated_kb: float | None = None
     max_allocated_kb: float | None = None
 
-    avg_heap_used_delta_kb: float | None = None
-    median_heap_used_delta_kb: float | None = None
-    min_heap_used_delta_kb: float | None = None
-    max_heap_used_delta_kb: float | None = None
-
 
 def _bytes_to_kb(b: float) -> float:
     return b / 1024.0
@@ -58,37 +53,16 @@ def parse_algorithm_stats(result: dict) -> Dict[str, AlgorithmStats]:
         min_alloc = payload.get("minAllocatedBytes")
         max_alloc = payload.get("maxAllocatedBytes")
 
-        avg_heap = payload.get("avgHeapUsedDeltaBytes")
-        median_heap = payload.get("medianHeapUsedDeltaBytes")
-        min_heap = payload.get("minHeapUsedDeltaBytes")
-        max_heap = payload.get("maxHeapUsedDeltaBytes")
-
-        def _to_kb(v) -> float | None:
-            if v is None:
-                return None
-            try:
-                f = float(v)
-            except (TypeError, ValueError):
-                return None
-            if f < 0:
-                return None
-            return _bytes_to_kb(f)
-
         stats[algo_name] = AlgorithmStats(
             avg_ms=avg_ns / 1_000_000.0,
             median_ms=median_ns / 1_000_000.0,
             min_ms=min_ns / 1_000_000.0,
             max_ms=max_ns / 1_000_000.0,
 
-            avg_allocated_kb=_to_kb(avg_alloc),
-            median_allocated_kb=_to_kb(median_alloc),
-            min_allocated_kb=_to_kb(min_alloc),
-            max_allocated_kb=_to_kb(max_alloc),
-
-            avg_heap_used_delta_kb=_to_kb(avg_heap),
-            median_heap_used_delta_kb=_to_kb(median_heap),
-            min_heap_used_delta_kb=_to_kb(min_heap),
-            max_heap_used_delta_kb=_to_kb(max_heap),
+            avg_allocated_kb=_bytes_to_kb(float(avg_alloc)) if avg_alloc is not None else None,
+            median_allocated_kb=_bytes_to_kb(float(median_alloc)) if median_alloc is not None else None,
+            min_allocated_kb=_bytes_to_kb(float(min_alloc)) if min_alloc is not None else None,
+            max_allocated_kb=_bytes_to_kb(float(max_alloc)) if max_alloc is not None else None,
         )
 
     return stats

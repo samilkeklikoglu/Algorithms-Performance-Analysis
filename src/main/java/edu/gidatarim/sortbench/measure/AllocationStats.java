@@ -20,42 +20,19 @@ public final class AllocationStats {
       throw new IllegalArgumentException("allocated bytes array must not be empty");
     }
 
-    // Support "no data" sentinels (negative values). This allows us to record
-    // optional metrics (e.g., thread allocated bytes) while still exporting
-    // a stable JSON schema.
-    int count = 0;
-    for (long b : bytes) {
-      if (b >= 0) {
-        count++;
-      }
-    }
-
-    if (count == 0) {
-      // No valid samples.
-      return new AllocationStats(-1L, -1L, Double.NaN, Double.NaN);
-    }
-
-    long[] values = new long[count];
-    int j = 0;
-    for (long b : bytes) {
-      if (b >= 0) {
-        values[j++] = b;
-      }
-    }
-
-    long min = values[0];
-    long max = values[0];
+    long min = bytes[0];
+    long max = bytes[0];
     double sum = 0.0;
-    for (long b : values) {
+    for (long b : bytes) {
       if (b < min)
         min = b;
       if (b > max)
         max = b;
       sum += b;
     }
-    double avg = sum / values.length;
+    double avg = sum / bytes.length;
 
-    long[] sorted = Arrays.copyOf(values, values.length);
+    long[] sorted = Arrays.copyOf(bytes, bytes.length);
     Arrays.sort(sorted);
     double median;
     int n = sorted.length;
