@@ -2,42 +2,38 @@
 
 ## Big picture
 
-- This repo is **dual-track**: Java is the **authoritative benchmark engine**, Python is a **GUI/visualizer** that launches Java and reads JSON.
-- Java entrypoint: [src/main/java/edu/gidatarim/sortbench/Main.java](../src/main/java/edu/gidatarim/sortbench/Main.java)
-  - Parses CLI args via [src/main/java/edu/gidatarim/sortbench/cli/Args.java](../src/main/java/edu/gidatarim/sortbench/cli/Args.java)
-  - Runs benchmark via [src/main/java/edu/gidatarim/sortbench/measure/BenchmarkRunner.java](../src/main/java/edu/gidatarim/sortbench/measure/BenchmarkRunner.java)
-  - Writes JSON via [src/main/java/edu/gidatarim/sortbench/export/JsonWriter.java](../src/main/java/edu/gidatarim/sortbench/export/JsonWriter.java)
+- This repo is **dual-track**: Python is a GUI/visualization client; Java is the **authoritative benchmark engine**.
+- Data flow: Python launches Java via Gradle Wrapper → Java writes a single JSON file into `results/` → Python loads/parses it for charts/table.
+  - Java prints `Wrote results: <absolute path>.json`; Python prefers that, otherwise falls back to “latest file” in `results/`.
 
-## Critical workflows
+## Key code map
 
-- Build (Windows): `./gradlew.bat build` (Java target = 17; see [build.gradle](../build.gradle))
-- Run benchmark (Windows): `./gradlew.bat run --args="--dataset random --size 20000 --reps 5 --seed 42"`
-- Run GUI: `python python/main.py` (see [python/README.md](../python/README.md))
+- Java CLI entrypoint: `src/main/java/edu/gidatarim/sortbench/Main.java`
+- CLI args + quirks: `src/main/java/edu/gidatarim/sortbench/cli/Args.java`
+  - Supports a Windows/Gradle quoting case where all args arrive as **one string** (`argv.length == 1`).
+- Benchmark loop + invariants: `src/main/java/edu/gidatarim/sortbench/measure/BenchmarkRunner.java`
+  - Per repetition `r`: dataset seed is `seed + r`; every algorithm sorts a **fresh clone** of the same base array.
+  - `--verify` checks sortedness **outside** the timed region.
+- JSON schema writer (hand-rolled): `src/main/java/edu/gidatarim/sortbench/export/JsonWriter.java`
+- Python launcher: `python/java_runner.py` (uses `cmd.exe /c gradlew.bat run --args="..."` for reliable Windows behavior)
+- Python results parsing: `python/results_loader.py`, `python/parse_java_output.py`
 
-## Benchmarking conventions (important)
+## Developer workflows (Windows)
 
-- **Paired reps:** For repetition `r`, the engine generates one dataset with `seed + r`, then benchmarks every algorithm on a fresh `base.clone()`.
-- **Warmup:** `--warmup` runs untimed warmup sorts before measuring.
-- **Verification:** `--verify` checks sortedness outside the timed region.
-- **Allocation metric:** Collected during the timed sort region via [src/main/java/edu/gidatarim/sortbench/measure/AllocationMeasurer.java](../src/main/java/edu/gidatarim/sortbench/measure/AllocationMeasurer.java) (`thread allocated bytes` if available, otherwise heap-used delta).
+- Build Java: `./gradlew.bat build`
+- Run Java benchmark directly:
+  - `./gradlew.bat run --args="--dataset random --size 20000 --reps 5 --seed 42 --warmup 5 --algorithms all --verify true"`
+- Run the Python GUI (after venv + deps; see `python/README.md`): `python python\main.py`
 
-## Results format + location
+## Project-specific conventions
 
-- Output directory is **hard-coded** to `results/` (Java writes there; Python reads from there).
-- Java prints: `Wrote results: <absolute path>.json` (Python parses this in [python/parse_java_output.py](../python/parse_java_output.py)).
-- File naming: `<dataset>_n<size>_r<reps>_s<seed>_<timestamp>.json` (see JsonWriter).
-- JSON shape (top-level): `timestampUtc`, `engineVersion`, `jvm{...}`, `params{...}`, `resultsByAlgorithm{...}`.
-  - Per algorithm: `timesNs[]`, `allocatedBytes[]`, plus stats: `minNs/maxNs/avgNs/medianNs` and `minAllocatedBytes/maxAllocatedBytes/avgAllocatedBytes/medianAllocatedBytes`.
+- Java targets **Java 17 bytecode** (`build.gradle` uses `options.release = 17`). Prefer language features compatible with 17.
+- Results output directory is effectively **fixed** to `results/` (see `Main.java` → `JsonWriter.writeToResultsDir(..., Path.of("results"))`).
+- JSON fields consumed by Python include `params.allocationMetric` and `resultsByAlgorithm[*].{avgNs,medianNs,minNs,maxNs,avgAllocatedBytes,...}`.
+  - Python displays time in **ms** and memory as **KB allocated during timed sort**; in-place algorithms may show `0`/`None`.
 
-## Windows/Gradle quoting quirk
+## When changing/adding algorithms
 
-- Gradle may pass args as a **single token** on Windows; Java arg parsing explicitly supports this (see `Args.parse`).
-- Python runner uses `cmd.exe /c gradlew.bat run --args="..."` to avoid Gradle interpreting `--dataset` etc as Gradle flags (see [python/java_runner.py](../python/java_runner.py)).
-
-## Adding/changing algorithms (project pattern)
-
-- Algorithms are stateless utilities with `public static void sort(int[] a)` (examples: [src/main/java/edu/gidatarim/sortbench/algo/QuickSort.java](../src/main/java/edu/gidatarim/sortbench/algo/QuickSort.java), [src/main/java/edu/gidatarim/sortbench/algo/RadixSort.java](../src/main/java/edu/gidatarim/sortbench/algo/RadixSort.java)).
-- If you add a new algorithm:
-  - Add it to [src/main/java/edu/gidatarim/sortbench/cli/AlgorithmName.java](../src/main/java/edu/gidatarim/sortbench/cli/AlgorithmName.java)
-  - Wire it in `BenchmarkRunner.sort(...)`
-  - Ensure it can handle the dataset constraints (e.g., current random values are non-negative; Radix assumes `value >= 0`).
+- Add/modify sorter implementations under `src/main/java/edu/gidatarim/sortbench/algo/`.
+- Update algorithm selection + parsing in `src/main/java/edu/gidatarim/sortbench/cli/AlgorithmName.java` and the dispatch `switch` in `BenchmarkRunner.sort(...)`.
+- Keep `JsonWriter` schema stable or update Python parsers (`python/results_loader.py`) in the same change.
