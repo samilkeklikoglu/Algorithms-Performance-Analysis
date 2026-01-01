@@ -5,7 +5,7 @@ import java.lang.management.ManagementFactory;
 public final class AllocationMeasurer {
   public enum Metric {
     THREAD_ALLOCATED_BYTES,
-    HEAP_USED_DELTA_BYTES
+    UNSUPPORTED
   }
 
   private final Metric metric;
@@ -14,8 +14,7 @@ public final class AllocationMeasurer {
   private final com.sun.management.ThreadMXBean threadBean;
   private final long threadId;
 
-  // Only used when Metric.HEAP_USED_DELTA_BYTES
-  private final java.lang.management.MemoryMXBean memoryBean;
+  // No longer used for heap delta here; heap-used delta is measured separately.
 
   private AllocationMeasurer(
       Metric metric,
@@ -25,7 +24,6 @@ public final class AllocationMeasurer {
     this.metric = metric;
     this.threadBean = threadBean;
     this.threadId = threadId;
-    this.memoryBean = memoryBean;
   }
 
   @SuppressWarnings("deprecation")
@@ -41,10 +39,10 @@ public final class AllocationMeasurer {
         }
       }
     } catch (Throwable ignored) {
-      // Fall through to heap delta.
+      // Fall through to unsupported.
     }
 
-    return new AllocationMeasurer(Metric.HEAP_USED_DELTA_BYTES, null, -1L, ManagementFactory.getMemoryMXBean());
+    return new AllocationMeasurer(Metric.UNSUPPORTED, null, -1L, null);
   }
 
   public Metric metric() {
@@ -54,7 +52,7 @@ public final class AllocationMeasurer {
   public long read() {
     return switch (metric) {
       case THREAD_ALLOCATED_BYTES -> threadBean.getThreadAllocatedBytes(threadId);
-      case HEAP_USED_DELTA_BYTES -> memoryBean.getHeapMemoryUsage().getUsed();
+      case UNSUPPORTED -> -1L;
     };
   }
 }

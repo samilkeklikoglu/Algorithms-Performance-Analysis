@@ -22,6 +22,7 @@ public final class BenchmarkResult {
   public final long seed;
 
   public final String allocationMetric;
+  public final String heapMetric;
 
   public final Map<AlgorithmName, AlgorithmRun> resultsByAlgorithm;
 
@@ -39,6 +40,7 @@ public final class BenchmarkResult {
       int warmupRuns,
       long seed,
       String allocationMetric,
+      String heapMetric,
       Map<AlgorithmName, AlgorithmRun> resultsByAlgorithm) {
     this.timestampUtc = timestampUtc;
     this.engineVersion = engineVersion;
@@ -53,6 +55,7 @@ public final class BenchmarkResult {
     this.warmupRuns = warmupRuns;
     this.seed = seed;
     this.allocationMetric = allocationMetric;
+    this.heapMetric = heapMetric;
     this.resultsByAlgorithm = resultsByAlgorithm;
   }
 }

@@ -9,6 +9,8 @@ import edu.gidatarim.sortbench.cli.AlgorithmName;
 import edu.gidatarim.sortbench.cli.Args;
 import edu.gidatarim.sortbench.data.DatasetGenerator;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.Map;
@@ -23,10 +25,11 @@ public final class BenchmarkRunner {
     warmup(args, engineVersion);
 
     AllocationMeasurer allocationMeasurer = AllocationMeasurer.create();
+    MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 
     Map<AlgorithmName, AlgorithmRun> results = new EnumMap<>(AlgorithmName.class);
     for (AlgorithmName name : args.algorithms) {
-      results.put(name, new AlgorithmRun(new long[args.repetitions], new long[args.repetitions]));
+      results.put(name, new AlgorithmRun(new long[args.repetitions], new long[args.repetitions], new long[args.repetitions]));
     }
 
     for (int r = 0; r < args.repetitions; r++) {
@@ -37,9 +40,11 @@ public final class BenchmarkRunner {
         int[] copy = base.clone();
 
         long allocBefore = allocationMeasurer.read();
+        long heapBefore = memoryBean.getHeapMemoryUsage().getUsed();
         long start = System.nanoTime();
         sort(name, copy);
         long end = System.nanoTime();
+        long heapAfter = memoryBean.getHeapMemoryUsage().getUsed();
         long allocAfter = allocationMeasurer.read();
 
         if (args.verify) {
@@ -48,14 +53,19 @@ public final class BenchmarkRunner {
 
         // Record measurement
         results.get(name).timesNs[r] = end - start;
-        results.get(name).allocatedBytes[r] = Math.max(0L, allocAfter - allocBefore);
+        if (allocBefore < 0L || allocAfter < 0L) {
+          results.get(name).allocatedBytes[r] = -1L;
+        } else {
+          results.get(name).allocatedBytes[r] = Math.max(0L, allocAfter - allocBefore);
+        }
+        results.get(name).heapUsedDeltaBytes[r] = Math.max(0L, heapAfter - heapBefore);
       }
     }
 
     // Recompute stats with filled arrays
     Map<AlgorithmName, AlgorithmRun> finalized = new EnumMap<>(AlgorithmName.class);
     for (Map.Entry<AlgorithmName, AlgorithmRun> e : results.entrySet()) {
-      finalized.put(e.getKey(), new AlgorithmRun(e.getValue().timesNs, e.getValue().allocatedBytes));
+      finalized.put(e.getKey(), new AlgorithmRun(e.getValue().timesNs, e.getValue().allocatedBytes, e.getValue().heapUsedDeltaBytes));
     }
 
     String timestampUtc = Instant.now().toString();
@@ -74,6 +84,7 @@ public final class BenchmarkRunner {
         args.warmupRuns,
         args.seed,
         allocationMeasurer.metric().name().toLowerCase(),
+      "heap_used_delta_bytes",
         finalized);
   }
 

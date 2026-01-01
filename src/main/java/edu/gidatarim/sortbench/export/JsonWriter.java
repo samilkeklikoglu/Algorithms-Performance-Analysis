@@ -61,7 +61,8 @@ public final class JsonWriter {
     numField(sb, "repetitions", r.repetitions).append(',');
     numField(sb, "warmupRuns", r.warmupRuns).append(',');
     numField(sb, "seed", r.seed).append(',');
-    field(sb, "allocationMetric", r.allocationMetric);
+    field(sb, "allocationMetric", r.allocationMetric).append(',');
+    field(sb, "heapMetric", r.heapMetric);
     sb.append('}').append(',');
 
     sb.append("\"resultsByAlgorithm\":{");
@@ -85,7 +86,20 @@ public final class JsonWriter {
       for (int i = 0; i < run.allocatedBytes.length; i++) {
         if (i > 0)
           sb.append(',');
-        sb.append(run.allocatedBytes[i]);
+        long v = run.allocatedBytes[i];
+        if (v < 0L) {
+          sb.append("null");
+        } else {
+          sb.append(v);
+        }
+      }
+      sb.append("],");
+
+      sb.append("\"heapUsedDeltaBytes\":[");
+      for (int i = 0; i < run.heapUsedDeltaBytes.length; i++) {
+        if (i > 0)
+          sb.append(',');
+        sb.append(run.heapUsedDeltaBytes[i]);
       }
       sb.append("],");
 
@@ -94,10 +108,15 @@ public final class JsonWriter {
       doubleField(sb, "avgNs", run.stats.avgNs).append(',');
       doubleField(sb, "medianNs", run.stats.medianNs).append(',');
 
-      numField(sb, "minAllocatedBytes", run.allocationStats.minAllocatedBytes).append(',');
-      numField(sb, "maxAllocatedBytes", run.allocationStats.maxAllocatedBytes).append(',');
+      nullableNumField(sb, "minAllocatedBytes", run.allocationStats.minAllocatedBytes).append(',');
+      nullableNumField(sb, "maxAllocatedBytes", run.allocationStats.maxAllocatedBytes).append(',');
       doubleField(sb, "avgAllocatedBytes", run.allocationStats.avgAllocatedBytes).append(',');
-      doubleField(sb, "medianAllocatedBytes", run.allocationStats.medianAllocatedBytes);
+      doubleField(sb, "medianAllocatedBytes", run.allocationStats.medianAllocatedBytes).append(',');
+
+      numField(sb, "minHeapUsedDeltaBytes", run.heapUsedDeltaStats.minAllocatedBytes).append(',');
+      numField(sb, "maxHeapUsedDeltaBytes", run.heapUsedDeltaStats.maxAllocatedBytes).append(',');
+      doubleField(sb, "avgHeapUsedDeltaBytes", run.heapUsedDeltaStats.avgAllocatedBytes).append(',');
+      doubleField(sb, "medianHeapUsedDeltaBytes", run.heapUsedDeltaStats.medianAllocatedBytes);
 
       sb.append('}');
     }
@@ -117,6 +136,16 @@ public final class JsonWriter {
   private static StringBuilder numField(StringBuilder sb, String name, long value) {
     sb.append('"').append(escape(name)).append('"').append(':');
     sb.append(value);
+    return sb;
+  }
+
+  private static StringBuilder nullableNumField(StringBuilder sb, String name, long value) {
+    sb.append('"').append(escape(name)).append('"').append(':');
+    if (value < 0L) {
+      sb.append("null");
+    } else {
+      sb.append(value);
+    }
     return sb;
   }
 
